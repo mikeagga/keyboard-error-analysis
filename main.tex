@@ -1,0 +1,297 @@
+\documentclass[12pt]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{natbib}
+
+\title{Empirical Error Cost Analysis for Keyboard Layout Optimization}
+\author{Michael Agostino}
+\date{April 3, 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Abstract}
+
+Keyboard layout generators evaluate candidate layouts against heuristic structural metrics that are assumed to proxy for typing performance. These metrics were established by intuition rather than empirical validation, and their underlying assumption of independent, additive bigram costs conflicts with established models of typing as a parallel, context-dependent motor process. I present an empirical error analysis of 1,435 errors from approximately 33,600 of my own keystrokes, classifying each by type and biomechanical mechanism and measuring fix costs directly from keystroke timing. I find that some generator metrics are well-supported (inward rolls are protective against transpositions, 2.46 times less risky than outward cross-row rolls), some carry hidden costs (hand alternation increases transposition risk 3.19 times), and important error-producing configurations are entirely unmodeled (mirror-position substitutions at 2.18 times chance, adjacent-finger coupling driving both insertions and substitutions). I also find that center-drift bias is a geometric artifact, and that approximately 27\% of insertions are cognitive planning errors that no layout can address. I then applied my findings to improve layout metrics.
+
+\section{Introduction}
+
+The design of keyboard layouts for touch typists has attracted sustained interest, driven by the premise that even modest improvements to key placement compound over a lifetime of typing. One popular approach is layout generation software, which evaluates candidate layouts against a cost function and searches for configurations that minimize total cost. Although implementations vary, most cost functions share a common set of structural metrics: penalties for same-finger bigrams, bonuses for hand alternation, preferences for inward over outward rolls, targets for balanced finger loading, and similar heuristics. These metrics were established largely by intuition and informal observation, and in practice they serve as proxies for typing performance, under the assumption that a layout scoring well on these structural features will produce faster, more comfortable, and more accurate typing.
+
+But do these cost functions reflect what actually causes errors during typing? This study directly compares the structural assumptions embedded in generator metrics against empirical error data from real typing.
+
+These heuristics are not necessarily incorrect since many of the metrics are supported by the literature. Hand alternation, for example, is rewarded because cross-hand bigrams are approximately 30\% faster than same-hand pairs \citep{salthouse1986}. This is a real effect, explained by parallel motor preparation across hands \citep{john1996, wu2008}. But the same independence that enables this parallelism also weakens ordering between hands, and studies confirm that cross-hand bigrams produce substantially more transposition errors, some report that 80\% of transpositions involve cross-hand pairs \citep{grudin1983}. The speed benefit that generators reward thus carries a hidden error cost that their metrics do not capture. Little effort has connected the structural features that generators optimize to empirical error rates and the time cost of correcting those errors.
+
+The single-participant design is informed by evidence. Typing patterns are individual-specific enough to serve as a biometric for authentication \citep{monrose2000}, which suggests that individualized metrics may yield better optimization targets than population averages.
+
+In this paper, I analyze 1,435 errors from approximately 33,600 keystrokes of my own typing, classifying each by type and biomechanical mechanism and measuring fix costs from keystroke timing. I find that some generator metrics are well-supported, some carry hidden costs, and some important error-producing configurations are entirely unmodeled. I also identify a class of insertion errors driven by cognitive planning rather than key placement, representing an irreducible error floor. Based on these findings, I propose recommendations for integrating empirical error cost into layout optimization.
+
+\section{Method}
+
+\subsection{Data Collection}
+
+Typing data were collected on a MacBook Air M2 (2022) using the laptop's built-in keyboard (1.0 mm key travel, QWERTY layout). I am a lifelong typist with 2 years of touch typing experience, averaging approximately 61 words per minute and 92\% accuracy on transcription tasks. All typing tests were performed in the same physical environment over three days.
+
+A custom keylogger written in C captured all keystrokes at the operating system level, recording press and release timestamps for every key event including backspaces and spaces. Typing tests were performed on the Monkeytype website, with each test consisting of 60 seconds of continuous transcription typing. The test corpus comprised the 5,000 most common English words, converted to lowercase, presented in random order. Random word order has been shown not to affect transcription typing speed \citep{salthouse1986}. I completed 100 tests, logging 73,603 total keystrokes.
+
+When I noticed an error during a test, I pressed backspace repeatedly until the erroneous characters were deleted, then retyped the correct sequence. No mouse-based corrections were used. This protocol was chosen to approximate natural error correction in continuous typing, though the test environment differs from natural prose composition in the absence of punctuation, capitalization, and sentence structure. Of the total errors produced, 1,624 were corrected during typing and 20 went undetected. Fix cost measurements are restricted to corrected errors; error type and mechanism classification includes all identified errors.
+
+\subsection{Error Identification and Classification}
+
+Errors were identified by replaying each test's keystroke log against the target word sequence to reconstruct the typed text. When a sequence of backspaces was detected, the text state before and after deletion was recorded, producing a paired representation of what was typed and what was intended. Only misspelled words were examined.
+
+Each erroneous segment was classified using a fixed hierarchy of single-operation checks: transposition, substitution, insertion, then omission. This ordering matters because some errors are ambiguous between categories. For example, a swapped pair like \textit{teh} for \textit{the} would be misclassified as two substitutions if substitutions were checked first. When no single-operation classification matched, a Damerau-Levenshtein edit distance algorithm identified the minimum operation sequence, with consecutive omissions collapsed into a single event.
+
+Each classified error was linked to the specific keystroke(s) responsible, enabling extraction of precise timestamps for fix cost measurement. Of the 1,644 total errors identified, 1,435 were classifiable as single direct operations and form the basis of the analyses below. The remaining 209 involved multiple co-occurring operations within a single word and were excluded because simultaneous errors confound independent mechanism attribution. All 20 uncorrected errors are included in error classification but excluded from fix cost analyses.
+
+\subsection{Structural Feature Coding}
+
+All analyses use the standard QWERTY layout with conventional touch-typing finger assignments, with each index finger covering two columns. Each keystroke was coded for hand, finger, row, and column position.
+
+For error events involving two keys, relational features were coded: same versus cross hand, finger distance (same, adjacent, non-adjacent), row transition, roll direction (inward toward index or outward toward pinky), and mirror position, defined as column-symmetric pairs relative to the keyboard midline (e.g., ``f''/``j'', ``d''/``k'', ``s''/``l''), yielding 22 such pairs on the three main rows. For substitutions, both mirror position and mirror finger (same finger on opposite hands) were analyzed. For transpositions, only mirror finger was analyzed due to insufficient mirror-position pair counts. For insertions, relational features were coded between the inserted key and the preceding key.
+
+Baseline exposure rates were computed from the target corpus. Character-level baselines were used for single-key analyses (e.g., per-key substitution rates) and bigram-level baselines for relational analyses (e.g., same-hand vs. cross-hand error rates). Hand and finger proportions were derived from these frequencies using the finger assignments above.
+
+\subsection{Fix Cost Measurement}
+
+Fix cost was operationalized as the duration of the correction sequence: the interval from the first backspace following an error to the last backspace in the contiguous deletion sequence. This measures the mechanical cost of correction, specifically how many characters needed to be deleted, rather than detection latency. Correction duration was chosen because it directly quantifies the disruption an error imposes on typing throughput: the time spent undoing erroneous output before retyping can begin.
+
+Errors were excluded from fix cost analysis if no backspace sequence followed (uncorrected errors, $N = 20$), if the error occurred in the final word of a test where the timer expired before correction could begin, or if the backspace sequence could not be unambiguously linked to the error event.
+
+\subsection{Statistical Approach}
+
+Observed error proportions were tested against corpus-derived baseline proportions using exact binomial tests. Distributional comparisons across multiple categories used chi-square goodness-of-fit tests against expected frequencies derived from baseline exposure. Fix cost distributions were non-normal and compared using Mann-Whitney U tests for two-group comparisons and Kruskal-Wallis tests for comparisons across three or more groups.
+
+All analyses involving multiple comparisons within a test family were corrected using the Holm-Bonferroni procedure. Comparison family sizes are reported with each analysis to permit evaluation of corrections. Effect sizes are reported throughout: Cohen's $h$ for proportion comparisons, Cohen's $d$ or rank-biserial correlation for group comparisons of continuous measures, and Cram\'{e}r's $V$ for distributional tests. Risk ratios (observed rate divided by baseline rate) are reported for all proportion comparisons. Statistical analyses were conducted in Python using SciPy and statsmodels.
+
+\section{Findings}
+
+\subsection{Error Prevalence and Cross-Type Comparison}
+
+Across approximately 33,600 keystrokes, 1,435 errors were classified into four types. Table~\ref{tab:error_prevalence} summarizes the prevalence, fix cost and total disruption cost for each type. Cost per 1,000 keystrokes is computed as rate multiplied by median fix cost. Omissions are excluded from fix cost analysis because most were detected only through text comparison rather than corrected via backspace during typing.
+
+\begin{table}[htbp]
+\centering
+\caption{Error type prevalence, fix cost and total disruption cost.}
+\label{tab:error_prevalence}
+\begin{tabular}{lcccc}
+\toprule
+Error Type & Count & Rate per 1k & Median Fix (ms) & Cost per 1k (ms) \\
+\midrule
+Substitution & 861 & 25.6 & 419 & 10,726 \\
+Transposition & 248 & 7.4 & 224 & 1,658 \\
+Insertion & 243 & 7.2 & 966 & 6,955 \\
+Omission & 80 & 2.4 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Substitutions dominate both by volume (60.0\% of all errors) and by total disruption cost. However, the relationship between frequency and total cost is not straightforward. Insertions occur at roughly one-third the rate of substitutions (7.2 vs 25.6 per 1,000 keystrokes) yet contribute approximately 65\% as much total disruption cost, because their median fix cost is more than twice as high (966 ms vs 419 ms). This difference likely reflects the structure of the error detection process \citep{logan2010}.
+
+Within-type analyses use type-specific denominators where appropriate: substitution rates per key use that character's corpus frequency, transposition rates per bigram use that bigram's corpus frequency. These differ from the global keystroke denominator used in Table~\ref{tab:error_prevalence}.
+
+\subsection{Substitutions ($N = 861$)}
+
+\subsubsection{Same-Hand Clustering}
+
+Substitution errors cluster strongly on the same hand as the target key. Of 861 substitutions, 62.0\% involved an error key on the same hand as the target, compared to a baseline same-hand bigram proportion of 49.6\% derived from the corpus ($p < 10^{-12}$, Cohen's $h = 0.25$). This same-hand clustering is consistent with Grudin's \citep{grudin1983} finding that substitution errors in skilled typists overwhelmingly involve keys on the same hand as the intended target.
+
+Within same-hand substitutions, error risk decays with anatomical distance from the target key. The highest substitution rates involve vertical misfires, where the typist strikes the key directly above or below the target in the same column with the same finger. Next are same-finger lateral errors (adjacent column, same finger), followed by adjacent-finger errors, with non-adjacent finger substitutions least common. This gradient is significant ($\chi^2$ goodness-of-fit across 4 distance categories, $p < 10^{-12}$, Cram\'{e}r's $V = 0.20$).
+
+Displacement direction within each distance category is symmetric: vertical misfires show no upward or downward bias ($p = 1.0$, 2 comparisons), and adjacent-finger errors show no inward or outward bias ($p = 0.75$, 2 comparisons). These symmetries suggest positional uncertainty rather than directional drift. No victim-culprit finger asymmetry was observed (Wilcoxon signed-rank across 10 finger pairs, $p = 0.95$).
+
+\subsubsection{Center Drift Is a Geometric Artifact}
+
+A raw analysis of substitution displacement direction suggests a strong center-drift bias: for 23 of 26 keys, the mean displacement of substitution errors points toward the horizontal center of the keyboard (sign test, $p < 0.001$). Taken at face value, this would support generator metrics that penalize center-column key placements on the assumption that nearby keys attract errors inward.
+
+However, this pattern is almost entirely explained by keyboard geometry. On a finite keyboard, keys near the edges have more neighbors toward the center than away from it. A key on the far left column can only be confused with keys to its right, guaranteeing a rightward (center-directed) mean displacement even under uniform substitution probability. To test whether the observed drift exceeds this geometric expectation, I computed a null model in which each key's substitution errors are distributed uniformly across all 25 other keys. Under this null, the expected mean drift toward center is 2.31 columns. The observed mean drift is 1.69 columns, significantly less than the geometric expectation ($p < 0.001$, Cohen's $d = -0.74$). The excess drift, after subtracting the geometric baseline, is $-0.61$ columns: substitutions actually drift slightly less toward center than geometry alone predicts. This null model is conservative. A distance-weighted model in which nearby keys are more probable substitution targets would predict less center drift than the uniform model (because nearby keys are roughly symmetric around each key), making the negative excess even more pronounced.
+
+No vertical drift was observed ($p = 0.29$), consistent with the directional symmetry reported in Section 4.2.1.
+
+This suggests center-drift penalties are not justified.
+
+\subsubsection{Cross-Hand Mirror Effect}
+
+Among the 38.0\% of substitutions involving a cross-hand error key, a disproportionate number land on the mirror position of the target, the key occupying the column-symmetric location on the opposite hand. Mirror-position substitutions occurred at 2.18 times the rate expected from the baseline frequency of mirror-position bigrams in the corpus (14.6\% of cross-hand substitutions vs 6.7\% baseline, $p < 10^{-6}$, Cohen's $h = 0.26$).
+
+Critically, this effect is positional rather than finger-based. When mirror is defined by finger identity (same finger on the opposite hand, regardless of row) rather than column position, the effect vanishes: mirror-finger substitutions occur at 1.02 times baseline ($p = 0.42$). The brain confuses spatial locations that are symmetric across the body midline, not fingers that share an anatomical identity. This distinction matters for layout design because the risk is tied to which key occupies a mirror position, not to which finger strikes it.
+
+To my knowledge no current layout generator includes a mirror-position penalty. The constraint is tractable, since there are only 22 mirror-position pairs on the three main rows and the effect size is large enough to influence placement decisions for high-frequency character pairs.
+
+\subsubsection{Per-Key Vulnerability}
+
+Per-key substitution rates were computed by dividing each key's substitution count by its target frequency in the corpus, yielding a rate per 1,000 exposures. Five keys showed substitution rates significantly different from the global mean of 25.6 per 1,000 after Holm-Bonferroni correction.
+
+Three keys were significantly elevated: ``q'' (186.0 per 1,000 exposures), ``v'' (87.4 per 1,000) and ``f'' (64.9 per 1,000). Two keys were significantly suppressed: ``e'' (20.6 per 1,000) and ``i'' (18.9 per 1,000). The suppressed keys are among the highest-frequency characters in English, while the elevated keys are among the lowest-frequency. This pattern is consistent with Salthouse's \citep{salthouse1986} observation that keystroke execution becomes increasingly automatic with practice: high-frequency characters receive more practice and develop more robust motor programs, resulting in lower positional uncertainty. In contrast, low-frequency keys receive insufficient practice which leaves them vulnerable to confusion with neighboring keys.
+
+\subsubsection{Fix Cost}
+
+Substitution fix cost showed a mean of 452 ms and a median of 419 ms. Fix cost did not differ significantly across any of the structural subtypes analyzed, including same-hand versus cross-hand, mirror versus non-mirror and adjacent versus non-adjacent finger (Kruskal-Wallis, $p = 0.19$). The uniformity of fix cost across subtypes is consistent with Logan and Crump's \citep{logan2010} hierarchical model of error detection.
+
+\subsection{Transpositions ($N = 248$)}
+
+\subsubsection{Cross-Hand Dominance}
+
+Transposition errors are overwhelmingly cross-hand. Of 248 transpositions, 74.2\% involved one key on each hand, yielding a cross-hand transposition rate of 16.9 per 1,000 bigram exposures compared to 5.3 per 1,000 for same-hand transpositions, a risk ratio of 3.19 times ($p < 10^{-6}$). This proportion is consistent with the expert profile reported by Grudin \citep{grudin1983}, who found that approximately 80\% of transpositions in skilled typists involve cross-hand pairs.
+
+The mechanism is well characterized by motor models of typing. Both the TYPIST model \citep{john1996} and the QN-MHP model \citep{wu2008} explain the alternation speed advantage as a product of parallel motor processing. One hand executes a keystroke, the other hand can begin preparing its next target. This parallelism makes cross-hand bigrams faster, but it also comes with significant risk.
+
+\subsubsection{Cross-Hand Structure: Mirror Effect}
+
+Within the cross-hand transpositions, bigrams involving mirror-finger pairs (same finger on opposite hands) showed an elevated transposition rate of 22.9 per 1,000 bigram exposures compared to 14.8 per 1,000 for non-mirror cross-hand bigrams, a ratio of 1.54 times (Cohen's $h = 0.19$). Same-row mirror-finger pairs showed the highest observed rate at 32.6 per 1,000.
+
+However, this difference did not reach significance after Holm-Bonferroni correction ($p = 0.23$, 3 comparisons in family), likely reflecting insufficient power given the relatively small number of transpositions available for this subanalysis ($N = 184$ cross-hand transpositions). The observed effect size (Cohen's $h = 0.19$) represents a small-to-medium effect that would require approximately 450 cross-hand transpositions to detect at 80\% power. The pattern is suggestive of a spatial symmetry contribution to transposition risk, consistent with the mirror-position effect observed for substitutions, but cannot be confirmed with the present data.
+
+\subsubsection{Same-Hand Structure: Roll Direction}
+
+Among same-hand transpositions (25.8\% of all transpositions), roll direction is a strong predictor of error risk. Outward rolls, sequences moving from the index finger toward the pinky, produced transpositions at 9.7 per 1,000 bigram exposures, compared to 3.9 per 1,000 for inward rolls (moving from pinky toward index). This 2.46 times risk ratio is significant ($p = 0.006$ after Holm correction, 4 comparisons in family).
+
+The effect is driven by an interaction with row. When the two keys of a same-hand bigram occupy different rows, outward rolls produce transpositions at 12.8 per 1,000 compared to 3.2 per 1,000 for inward rolls, a 3.95 times ratio ($\chi^2 = 17.73$, $p = 0.0001$ after Bonferroni correction). When both keys are on the same row, the directional asymmetry disappears: outward and inward rolls produce comparable rates (4.2 vs 5.7 per 1,000, $p = 0.75$).
+
+This interaction has a clear mechanical interpretation. An inward roll naturally sequences from the outer fingers to the more dexterous inner fingers \citep{salthouse1986}. When both keys are on the same row, the hand can execute a fluid sequential motion. When an outward roll crosses rows, the hand must simultaneously extend outward and shift vertically, creating a more complex compound movement that is more prone to timing errors.
+
+The implication for generators is that the outward-roll penalty commonly included in cost functions is correct but probably not specific enough: the penalty should target outward rolls that cross rows, since same-row outward rolls carry no greater transposition risk.
+
+\subsubsection{Top Transposition-Prone Pairs}
+
+The five bigrams with the highest transposition rates per 1,000 exposures were: ``ei'' (78.1), ``ls'' (73.5), ``nt'' (44.2), ``ir'' (42.7) and ``ru'' (39.5). All five are cross-hand pairs, consistent with the overall cross-hand dominance of transpositions.
+
+There is substantial variance in transposition rates among bigrams that share the same finger-pair classification. Within a given pair of fingers, transposition rates vary by more than an order of magnitude across specific key combinations. For instance, ``ei'' transposes at 78.1 per 1,000 exposures while ``ci'' transposes at 7.1 per 1,000, a ratio exceeding 10 times despite involving the same finger pair.
+
+This variance suggests that finger-pair identity alone is an insufficient predictor of transposition risk. The specific keys involved, their row and column positions, and their frequency in the corpus all contribute independently. Higher-frequency bigrams may develop stronger motor chunks that are more resistant to transposition, consistent with Salthouse's \citep{salthouse1986} account of how practice consolidates keystroke sequences into integrated motor programs. This finding argues against generator cost functions that assign a single penalty to all bigrams sharing a finger-pair classification and in favor of key-level or at minimum row-sensitive penalties.
+
+\subsubsection{Fix Cost}
+
+Transposition fix cost showed a mean of 291 ms and a median of 224 ms, with a median of 2 backspaces per correction. Transpositions are the cheapest error type to fix, consistent with rapid inner-loop detection \citep{logan2010}: a transposition produces an immediate tactile mismatch at the first swapped keystroke and the following character confirms the problem, allowing detection within one or two keystrokes.
+
+No significant differences in fix cost were observed across structural categories, including cross-hand versus same-hand, inward versus outward roll, and mirror versus non-mirror (all Holm-corrected $p > 0.07$). As with substitutions, the uniformity of fix cost across subtypes suggests that error detection operates on the output stream rather than on the biomechanical characteristics of the error.
+
+\subsection{Insertions ($N = 243$)}
+
+Insertion errors, keystrokes that produce a character not present in the target word, are the least frequent of the three major error types but the most expensive to correct. Their analysis reveals three distinct causal mechanisms with different implications for layout optimization. Together these mechanisms account for 73.6\% of insertions; the remaining 26.4\% could not be reliably attributed to a single mechanism.
+
+\subsubsection{Finger Coupling (Enslaving): 37.4\%}
+
+The largest identifiable class of insertions (37.4\%) involves an adjacent finger firing involuntarily alongside the intended keystroke. Adjacent-finger insertions occurred at a rate significantly above the baseline proportion of adjacent-finger bigrams in the corpus (29.8\% vs 23.4\%, $p = 0.018$), with no inward or outward directional preference ($p = 1.0$). Middle fingers are the most vulnerable to coupling in mid-word position (left middle 1.33 times expected, right middle 1.40 times), while pinkies are substantially under-represented (left 0.60 times, right 0.00 times), consistent with the greater anatomical independence of the fifth digit.
+
+\subsubsection{Key Bounce: 9.5\%}
+
+A smaller class (9.5\%) involves the same key registering twice in succession. This rate exceeds the expected rate of same-key bigrams in the corpus (10.6\% vs 6.8\%, $p = 0.024$). The mechanism reflects either incomplete key release before re-registration or a second downstroke before full motor inhibition. The low key travel of the laptop keyboard used in this study (1.0 mm scissor-switch) likely amplifies this effect relative to keyboards with longer travel distances, since shorter travel provides less tactile feedback to signal that the keystroke has completed and requires less inadvertent force to re-trigger.
+
+\subsubsection{Word-Level Motor Priming: 26.7\%}
+
+Among cross-hand insertions, 66.2\% involve a character appearing elsewhere in the target word, with 63\% anticipatory and 37\% perseverative. If inserted characters were drawn randomly from the alphabet, only 15--20\% would match another character in a typical 5--7 letter word by chance. The observed rate of 66.2\% far exceeds this null expectation ($p < 0.0001$, exact binomial test).
+
+These are cognitive motor planning errors in which the motor system activates a keystroke belonging to the current word at the wrong time in the sequence. This pattern is consistent with models of word-level motor programming in skilled typing. Wu and Liu's \citep{wu2004} queuing network model predicts that all characters in a word are activated in parallel during motor planning.
+
+\subsubsection{Fix Cost}
+
+Insertions are the most expensive error type to correct, with a mean fix cost of 963 ms and a median of 966 ms, more than double the median for substitutions (419 ms) and more than four times that of transpositions (224 ms). The high cost reflects the particular difficulty of detecting insertions \citep{logan2010}.
+
+Fix cost is uniform across insertion mechanisms. Coupling, bounce and word-priming insertions all show comparable fix durations (Kruskal-Wallis, $p = 0.80$), reinforcing the finding that the error detection system is insensitive to the source of the error.
+
+The one significant predictor of insertion fix cost is word position. Insertions occurring at or near the end of a word were detected approximately 430 ms faster than mid-word insertions ($p < 0.0001$). Word boundaries function as detection checkpoints: the space keystroke that terminates a word triggers an evaluation of the completed output against the expected word, catching errors that were not detected during continuous typing. This is consistent with Conijn et al.'s \citep{conijn2019} finding that error revisions in transcription typing cluster at word boundaries.
+
+\subsection{Omissions ($N = 80$)}
+
+Omissions, target characters skipped entirely, are the rarest error type at 2.4 per 1,000 keystrokes. The small sample size leaves most structural analyses underpowered and the absence of a positive error keystroke limits the features available for analysis. Suggestive patterns emerged, including a slight right-hand over-representation (1.24 times, $p = 0.087$) and elevated rates in same-hand-then-alternating trigram contexts (1.19 times), but none reached significance after correction. Due to insufficient power and a high proportion of unclassifiable events, omissions are excluded from the cross-cutting synthesis and generator recommendations. Their low base rate suggests that omission risk is unlikely to be a productive target for layout optimization.
+
+\section{Summary}
+
+\subsection{Recommendations for Layout Generators}
+
+Based on the empirical findings, I propose six changes to generator cost functions. These recommendations are derived from a single typist and should be treated as preliminary hypotheses requiring validation across individuals before adoption as prescriptive values:
+
+\begin{enumerate}
+    \item \textbf{Hand alternation:} Consider weighting the alternation bonus against transposition cost. In this dataset, cross-hand bigrams showed 3.19 times the transposition risk of same-hand bigrams, though this ratio may vary across typists.
+    
+    \item \textbf{Outward roll penalty:} Restrict to outward rolls that cross rows; same-row outward rolls showed no elevated risk in this data.
+    
+    \item \textbf{Mirror-position penalty:} Consider adding a penalty for high-frequency bigram pairs landing on column-symmetric positions (22 pairs on three rows; 2.18 times substitution risk observed here).
+    
+    \item \textbf{Adjacent-finger penalty:} Consider extending the same-finger penalty to adjacent-finger pairs at reduced weight. In this dataset, adjacent-finger coupling contributed meaningfully to insertion errors. The appropriate penalty weight cannot be determined from single-subject data and requires validation across typists with varying anatomies and skill levels.
+    
+    \item \textbf{Center-drift penalty:} Remove. The apparent bias is a geometric artifact that does not survive correction for keyboard boundary effects.
+    
+    \item \textbf{Word-level priming:} Not actionable by layout. Approximately 27\% of insertions in this dataset were cognitive planning errors, representing an error floor that layout changes cannot address.
+\end{enumerate}
+
+\subsection{Limitations}
+
+Several limitations constrain the generalizability of these findings. The data come from a single typist and while the case for individualized error profiling is part of the contribution, the specific effect sizes reported here may vary across individuals with different anatomies, training histories and typing speeds. The 74.2\% cross-hand transposition rate is consistent with the expert literature \citep{grudin1983}, providing some external validity, but other findings (particularly the per-key vulnerability rates and the insertion mechanism proportions) have no external benchmark.
+
+All data were collected on QWERTY. Mirror positions are layout-specific, since which key pairs occupy column-symmetric locations changes when the layout changes, so the mirror-position effect would need to be re-evaluated for each candidate layout. Similarly, the per-key vulnerability findings are confounded with QWERTY-specific finger assignments and cannot be directly transferred to other layouts.
+
+The typing task, consisting of 60-second transcription tests using the 5,000 most common English words in random order, excludes punctuation, capitalization, numbers and rare words. Error patterns in natural prose composition, programming, or other typing contexts may differ.
+
+The corpus of approximately 33,600 keystrokes provides adequate power for the major analyses but leaves some configurations underpowered. The mirror-finger transposition effect (1.54 times, Cohen's $h = 0.19$) did not reach significance after correction, and the omission analysis was too small for reliable inference. Larger datasets would be needed to confirm suggestive effects and to estimate error probabilities at the level of individual bigrams rather than structural categories.
+
+The 100 tests were conducted over three days, and errors within a session may not be independent. Fatigue, attention drift, or warmup effects could introduce correlations that inflate apparent significance. Visual inspection of error rates across test number showed no obvious trend (early tests: 14.1 errors/test; middle: 14.5; late: 14.2), suggesting fatigue effects were minimal, but formal modeling of within-session correlation was not performed.
+
+Finally, this study characterizes the error dimension of typing performance but does not attempt to weight it against the speed dimension. The relative importance of error cost versus interstroke interval cost is an open empirical question. The findings establish that the error dimension is structured and partially independent of the speed dimension, but determining the correct balance between them in a unified cost function is beyond the scope of the present data.
+
+\subsection{Conclusion}
+
+Keyboard layout generators optimize cost functions built on structural metrics established by intuition rather than empirical validation. This study analyzed 1,435 errors from approximately 33,600 keystrokes to evaluate how well those metrics capture what actually goes wrong during typing.
+
+The error data reveal three categories of mismatch between generator metrics and empirical reality. Some conventional metrics are well-supported: inward rolls are protective and same-finger bigrams remain the costliest configuration. Some carry hidden costs that generators do not account for, most notably hand alternation's transposition penalty. And some important error-producing configurations, including mirror-position confusion and adjacent-finger coupling, are entirely absent from current cost functions, while one widely modeled phenomenon (center drift) is a geometric artifact.
+
+Error detection is mechanism-independent: fix cost is uniform within each error type regardless of cause, meaning it can be treated as a flat per-type constant while modeling effort focuses on estimating error probability as a function of structural features. A class of cognitive planning errors sets an irreducible floor that no layout can address.
+
+The main barrier to integration is empirical. The structural categories identified here provide a framework for error cost modeling, but robust estimation of error probabilities within each category requires more data from more layouts. This study establishes that the error dimension of typing performance is real, measurable and structurally different from the speed dimension that generators currently optimize.
+
+\bibliographystyle{apalike}
+
+\begin{thebibliography}{99}
+
+\bibitem[Conijn et al., 2019]{conijn2019}
+Conijn, R., Van Zaanen, M., Leijten, M., \& Van Waes, L. (2019).
+How to typo? Building a process-based model of typographic error revisions.
+\textit{Journal of Writing Analytics}, 3, 69--95.
+
+\bibitem[Grudin, 1983]{grudin1983}
+Grudin, J. T. (1983).
+Error patterns in novice and skilled transcription typing.
+In \textit{Cognitive Aspects of Skilled Typewriting} (pp. 121--143). Springer New York.
+
+\bibitem[John, 1996]{john1996}
+John, B. E. (1996).
+TYPIST: A theory of performance in skilled typing.
+\textit{Human-Computer Interaction}, 11, 321--355.
+
+\bibitem[Logan \& Crump, 2010]{logan2010}
+Logan, G. D., \& Crump, M. J. C. (2010).
+Cognitive illusions of authorship reveal hierarchical error detection in skilled typists.
+\textit{Science}, 330(6004), 683--686.
+
+\bibitem[Monrose \& Rubin, 2000]{monrose2000}
+Monrose, F., \& Rubin, A. D. (2000).
+Keystroke dynamics as a biometric for authentication.
+\textit{Future Generation Computer Systems}, 16(4), 351--359.
+
+\bibitem[Salthouse, 1986]{salthouse1986}
+Salthouse, T. A. (1986).
+Perceptual, cognitive, and motoric aspects of transcription typing.
+\textit{Psychological Bulletin}, 99(3), 303--319.
+
+\bibitem[Wu \& Liu, 2004]{wu2004}
+Wu, C., \& Liu, Y. (2004).
+Modeling behavioral and brain imaging phenomena in transcription typing with queuing networks and reinforcement learning algorithms.
+In M. Lovett, C. Schunn, C. Lebiere, \& P. Munro (Eds.), \textit{Proceedings of the Sixth International Conference on Cognitive Modeling: ICCM 2004} (pp. 314--319). Lawrence Erlbaum Associates.
+
+\bibitem[Wu \& Liu, 2008]{wu2008}
+Wu, C., \& Liu, Y. (2008).
+Queuing network modeling of transcription typing.
+\textit{ACM Transactions on Computer-Human Interaction}, 15(1), Article 3.
+
+\end{thebibliography}
+
+\end{document}
